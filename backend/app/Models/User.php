@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role'
     ];
 
     /**
@@ -47,5 +48,15 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function isEmployee()
+    {
+        return $this->role === 'employee';
+    }
+
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
     }
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderItemController;
+use App\Http\Controllers\Auth\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,10 +18,22 @@ use App\Http\Controllers\OrderItemController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register/employee', [AuthController::class, 'registerEmployee']);
+Route::post('/login', [AuthController::class, 'login']);
 
-Route::apiResource('products', ProductController::class);
-Route::apiResource('orders', OrderController::class);
-Route::apiResource('order-items', OrderItemController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Employee routes
+    Route::middleware('role:employee')->group(function () {
+        Route::apiResource('products', ProductController::class);
+        Route::get('/orders/monitor', [OrderController::class, 'monitor']);
+    });
+    
+    // Customer routes
+    Route::middleware('role:customer')->group(function () {
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::post('/orders', [OrderController::class, 'store']);
+    });
+});

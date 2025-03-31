@@ -79,6 +79,7 @@ const LoginForm = () => {
             
             const response = await axios.post('/login', { email, password });
             const { user, token } = response.data;
+            localStorage.setItem('token', token); // Save token to localStorage
             login(user, token);
             navigate(user.role === 'employee' ? '/employee-dashboard' : '/customer-dashboard');
         } catch (err) {

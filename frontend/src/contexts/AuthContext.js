@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 axios.defaults.withCredentials = true; // Include credentials with requests
-axios.defaults.baseURL = 'http://localhost:8000/api'; // Ensure the base URL matches the backend
+axios.defaults.baseURL = 'http://localhost:8000'; // Ensure this matches the backend URL
 
 export const AuthContext = createContext();
 
@@ -20,20 +20,8 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
-    const fetchCsrfToken = async () => {
-        try {
-            await axios.get('/sanctum/csrf-cookie');
-        } catch (err) {
-            if (err.response?.status === 404) {
-                console.warn('CSRF cookie endpoint not found. Proceeding without CSRF setup.');
-            } else {
-                throw err;
-            }
-        }
-    };
-
-    const login = async (userData, authToken) => {
-        await fetchCsrfToken(); // Ensure CSRF token is set
+    const login = (userData, authToken) => {
+        localStorage.setItem('token', authToken); // Ensure token is saved
         setUser(userData);
         setToken(authToken);
     };

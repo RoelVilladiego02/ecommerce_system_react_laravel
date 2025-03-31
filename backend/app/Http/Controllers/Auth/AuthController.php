@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -55,7 +57,9 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'customer'
+            'role' => $request->role ?? 'customer',
+            'email_verified_at' => now(),
+            'remember_token' => Str::random(10)
         ]);
 
         return response()->json([
@@ -65,32 +69,40 @@ class AuthController extends Controller
     }
 
     public function registerEmployee(Request $request)
-    {
-        // Verify admin key from environment variable
-        if ($request->header('Admin-Key') !== config('auth.admin_key')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+{
+    // Debugging: Log the Admin-Key header and the expected value
+    Log::info('Admin-Key Header: ' . $request->header('Admin-Key'));
+    Log::info('Expected Admin-Key: ' . config('auth.admin_key'));
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'employee'
-        ]);
-
-        return response()->json([
-            'message' => 'Employee registered successfully',
-            'user' => $user
-        ], 201);
+    // Verify admin key from environment variable
+    if ($request->header('Admin-Key') !== config('auth.admin_key')) {
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
+
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json($validator->errors(), 422);
+    }
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'role' => 'employee',
+        'email_verified_at' => now(),
+        'remember_token' => Str::random(10),
+    ]);
+
+    return response()->json([
+        'message' => 'Employee registered successfully',
+        'user' => $user,
+    ], 201);
+}
+
+
 }

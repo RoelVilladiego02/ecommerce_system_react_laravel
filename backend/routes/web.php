@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Sanctum;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
+
+Route::get('/sanctum/csrf-cookie', function () {
+    return response()->json(['message' => 'CSRF cookie set']);
+})->middleware('web');

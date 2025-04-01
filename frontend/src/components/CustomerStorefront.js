@@ -9,22 +9,75 @@ const CustomerStorefront = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('name');
-    const [username, setUsername] = useState(localStorage.getItem('username') || 'Customer');
+    const [username, setUsername] = useState('Customer');
     const navigate = useNavigate();
+
+    // Function to get user data from localStorage or fallback to default
+    const getUserFromStorage = useCallback(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const userData = JSON.parse(userStr);
+                console.log('Retrieved user data from localStorage:', userData);
+                if (userData && userData.name) {
+                    setUsername(userData.name);
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error('Error parsing user data from localStorage:', error);
+            return false;
+        }
+    }, []);
+
+    // Fetch user info from API if not available in localStorage
+    const fetchUserInfo = useCallback(async () => {
+        // First try to get from localStorage
+        if (getUserFromStorage()) {
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found. Please log in.');
+            }
+
+            // Try to get user info from the API
+            const response = await axios.get('http://localhost:8000/api/user', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            console.log('User API response:', response.data);
+            
+            if (response.data && response.data.name) {
+                setUsername(response.data.name);
+                // Store in localStorage for future use
+                localStorage.setItem('user', JSON.stringify(response.data));
+            }
+        } catch (err) {
+            console.error('Failed to fetch user info:', err);
+            // If API call fails, try localStorage as fallback
+            getUserFromStorage();
+        }
+    }, [getUserFromStorage]);
 
     const fetchProducts = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
             
-            const token = localStorage.getItem('token'); // Ensure token is read from localStorage
+            const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('No authentication token found. Please log in.');
             }
 
             const response = await axios.get('http://localhost:8000/api/products', {
                 headers: {
-                    Authorization: `Bearer ${token}`, // Include token in header
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -43,6 +96,7 @@ const CustomerStorefront = () => {
                 if (err.response.status === 401) {
                     errorMessage = 'Session expired. Redirecting to login...';
                     localStorage.removeItem('token');
+                    localStorage.removeItem('user');
                     setTimeout(() => navigate('/login'), 2000);
                 } else if (err.response.data?.message) {
                     errorMessage = err.response.data.message;
@@ -58,16 +112,31 @@ const CustomerStorefront = () => {
     }, [navigate]);
 
     useEffect(() => {
+        // On component mount, check if we have user data and fetch products
+        fetchUserInfo();
         fetchProducts();
-    }, [fetchProducts]);
+    }, [fetchUserInfo, fetchProducts]);
 
+    // This setup ensures we capture the login response in your login component
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUsername(parsedUser.name || 'Customer');
-        }
-    }, []);
+        // Define event listener for login
+        const handleStorageChange = (e) => {
+            if (e.key === 'user' || e.key === 'token') {
+                getUserFromStorage();
+            }
+        };
+
+        // Listen for storage events from other tabs/windows
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Listen for custom login event from same window
+        window.addEventListener('user-login', getUserFromStorage);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('user-login', getUserFromStorage);
+        };
+    }, [getUserFromStorage]);
 
     useEffect(() => {
         const sortedProducts = [...products].sort((a, b) => {
@@ -92,7 +161,8 @@ const CustomerStorefront = () => {
 
     const handleRetry = async () => {
         setError(null);
-        await fetchProducts(); // Properly scoped fetchProducts
+        await fetchUserInfo();
+        await fetchProducts();
     };
 
     if (loading) return (
@@ -145,6 +215,7 @@ const CustomerStorefront = () => {
                     <h1 className="text-success">Welcome, {username}!</h1>
                 </div>
                 
+                {/* Rest of the component remains the same */}
                 <div className="row justify-content-center mb-4">
                     <div className="col-12">
                         <div className="card shadow-sm border-0">
@@ -197,7 +268,7 @@ const CustomerStorefront = () => {
                                             <div className="card h-100 shadow-sm border-0 hover-shadow transition-all">
                                                 <div className="position-relative overflow-hidden" style={{height: '200px'}}>
                                                     <img
-                                                        src={product.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                                                        src={product.image || 'https://via.placeholder.com/300x200'}
                                                         alt={product.name}
                                                         className="img-fluid w-100 h-100 object-fit-cover"
                                                     />

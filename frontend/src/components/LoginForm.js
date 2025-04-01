@@ -79,8 +79,24 @@ const LoginForm = () => {
             
             const response = await axios.post('/login', { email, password });
             const { user, token } = response.data;
-            localStorage.setItem('token', token); // Save token to localStorage
+            
+            // Store both token and user in localStorage
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Log the saved data for debugging
+            console.log('Saved to localStorage:', {
+                token: token,
+                user: JSON.stringify(user)
+            });
+            
+            // Dispatch a custom event to notify other components
+            window.dispatchEvent(new Event('user-login'));
+            
+            // Call the context login method
             login(user, token);
+            
+            // Navigate based on user role
             navigate(user.role === 'employee' ? '/employee-dashboard' : '/customer-dashboard');
         } catch (err) {
             console.error('Login error:', err);

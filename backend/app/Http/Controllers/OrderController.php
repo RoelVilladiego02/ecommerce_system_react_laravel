@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Http\Requests\OrderRequest;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -69,5 +70,37 @@ class OrderController extends Controller
         
         $order->delete();
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function checkout(Request $request)
+    {
+        $cart = $this->getCart($request);
+
+        if (empty($cart)) {
+            return response()->json(['error' => 'Cart is empty'], 400);
+        }
+
+        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+
+        foreach ($cart as $item) {
+            if ($products[$item['product_id']]->stock < $item['quantity']) {
+                return response()->json(['error' => "Insufficient stock for {$item['name']}"], 400);
+            }
+        }
+
+        $order = $request->user()->orders()->create(['status' => 'pending']);
+        foreach ($cart as $item) {
+            $order->items()->create([
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+            ]);
+
+            $products[$item['product_id']]->decrement('stock', $item['quantity']);
+        }
+
+        $this->saveCart($request, []);
+
+        return response()->json(['message' => 'Order placed successfully', 'order_id' => $order->id], 201);
     }
 }

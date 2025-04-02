@@ -11,9 +11,36 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Order::with(['orderItems.product'])->get());
+        $query = Order::with(['orderItems.product']);
+
+        // Apply filters
+        if ($request->has('date')) {
+            $query->filterByDate($request->date);
+        }
+        if ($request->has(['start_date', 'end_date'])) {
+            $query->filterByDateRange($request->start_date, $request->end_date);
+        }
+        if ($request->has('status')) {
+            $query->filterByStatus($request->status);
+        }
+
+        // Sort by newest orders first
+        $query->latest();
+
+        // Paginate results
+        $orders = $query->paginate(15);
+
+        return response()->json([
+            'data' => $orders->items(),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
+        ]);
     }
 
     public function store(OrderRequest $request)
@@ -47,9 +74,13 @@ class OrderController extends Controller
         });
     }
 
-    public function show(Order $order)
+    public function show($id)
     {
-        return response()->json($order->load('orderItems.product'));
+        $order = Order::with(['orderItems.product'])->findOrFail($id);
+
+        return response()->json([
+            'data' => $order,
+        ]);
     }
 
     public function update(Order $order)
@@ -102,5 +133,21 @@ class OrderController extends Controller
         $this->saveCart($request, []);
 
         return response()->json(['message' => 'Order placed successfully', 'order_id' => $order->id], 201);
+    }
+
+    public function getSalesTotal(Request $request)
+    {
+        $query = Order::query();
+
+        // Apply date range filter
+        if ($request->has(['start_date', 'end_date'])) {
+            $query->filterByDateRange($request->start_date, $request->end_date);
+        }
+
+        $totalSales = $query->sum('total');
+
+        return response()->json([
+            'total_sales' => $totalSales,
+        ]);
     }
 }

@@ -33,4 +33,19 @@ class Order extends Model
         return $this->belongsToMany(Product::class, 'order_items')
             ->withPivot('quantity', 'price');
     }
+
+    public function scopeFilterByDate($query, $date)
+    {
+        return $query->whereDate('created_at', $date);
+    }
+
+    public function scopeFilterByDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    public function scopeFilterByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
 }

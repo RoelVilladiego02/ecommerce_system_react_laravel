@@ -36,6 +36,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('products', ProductController::class);
         Route::get('/orders/monitor', [OrderController::class, 'monitor']);
     });
+
+    Route::middleware(['auth:sanctum', 'role:employee'])->group(function () {
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+        Route::get('/orders/sales/total', [OrderController::class, 'getSalesTotal']);
+    });
     
     // Customer routes
     Route::middleware('role:customer')->group(function () {

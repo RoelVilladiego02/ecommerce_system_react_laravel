@@ -10,6 +10,7 @@ import Navbar from './components/Navbar';
 import CartPage from './components/CartPage';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
+import CheckoutPage from './components/CheckoutPage';
 
 function App() {
   const [cartItemCount, setCartItemCount] = useState(0);
@@ -33,6 +34,7 @@ function App() {
           <Route path="/employee-dashboard" element={<AdminPanel />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
         </Routes>
       </Router>
     </AuthProvider>

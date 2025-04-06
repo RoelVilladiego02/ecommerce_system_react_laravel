@@ -9,7 +9,7 @@ class CartController extends Controller
 {
     public function show(Request $request)
     {
-        $cart = $this->getCart($request);
+        $cart = $this->getCart($request) ?? [];
         return response()->json(['cart' => $cart], 200);
     }
 
@@ -68,8 +68,17 @@ class CartController extends Controller
 
     public function clear(Request $request)
     {
-        $this->saveCart($request, []);
-        return response()->json(['message' => 'Cart cleared'], 200);
+        try {
+            if ($request->user()) {
+                $request->user()->update(['cart' => null]);
+            } else {
+                session()->forget('cart');
+            }
+            
+            return response()->json(['success' => true, 'message' => 'Cart cleared successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to clear cart'], 500);
+        }
     }
 
     private function getCart(Request $request)

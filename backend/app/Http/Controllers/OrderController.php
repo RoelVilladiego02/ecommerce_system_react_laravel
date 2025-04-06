@@ -105,34 +105,51 @@ class OrderController extends Controller
 
     public function checkout(Request $request)
     {
-        $cart = $this->getCart($request);
-
-        if (empty($cart)) {
-            return response()->json(['error' => 'Cart is empty'], 400);
-        }
-
-        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
-
-        foreach ($cart as $item) {
-            if ($products[$item['product_id']]->stock < $item['quantity']) {
-                return response()->json(['error' => "Insufficient stock for {$item['name']}"], 400);
-            }
-        }
-
-        $order = $request->user()->orders()->create(['status' => 'pending']);
-        foreach ($cart as $item) {
-            $order->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
+        return DB::transaction(function () use ($request) {
+            // Validate required fields
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'delivery_address' => 'required|string',
+                'contact_number' => 'required|string',
+                'payment_method' => 'required|in:cash,gcash,card',
+                'items' => 'required|array',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.price' => 'required|numeric|min:0',
             ]);
 
-            $products[$item['product_id']]->decrement('stock', $item['quantity']);
-        }
+            // Calculate total and validate stock
+            $total = 0;
+            $items = collect($request->items)->map(function ($item) use (&$total) {
+                $product = Product::findOrFail($item['product_id']);
+                if ($product->stock < $item['quantity']) {
+                    throw new \Exception("Insufficient stock for {$product->name}");
+                }
+                $product->decrement('stock', $item['quantity']);
+                $total += $item['price'] * $item['quantity'];
+                return $item;
+            });
 
-        $this->saveCart($request, []);
+            // Create order
+            $order = Order::create([
+                'user_id' => $request->user_id,
+                'delivery_address' => $request->delivery_address,
+                'contact_number' => $request->contact_number,
+                'message' => $request->message ?? null,
+                'payment_method' => $request->payment_method,
+                'total' => $total,
+                'status' => 'pending',
+            ]);
 
-        return response()->json(['message' => 'Order placed successfully', 'order_id' => $order->id], 201);
+            // Create order items
+            $order->orderItems()->createMany($items);
+
+            return response()->json([
+                'message' => 'Order placed successfully',
+                'order_id' => $order->id,
+                'data' => $order->load('orderItems.product'),
+            ], 201);
+        });
     }
 
     public function getSalesTotal(Request $request)

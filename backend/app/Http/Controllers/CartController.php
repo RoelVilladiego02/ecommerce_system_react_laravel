@@ -20,23 +20,36 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $product = Product::find($request->product_id);
+        $product = Product::findOrFail($request->product_id);
 
         if ($product->stock < $request->quantity) {
-            return response()->json(['error' => 'Insufficient stock'], 400);
+            return response()->json([
+                'success' => false,
+                'error' => 'Insufficient stock'
+            ], 400);
         }
 
         $cart = $this->getCart($request);
-        $cart[$request->product_id] = [
-            'product_id' => $product->id,
-            'name' => $product->name,
-            'price' => $product->price,
-            'quantity' => $cart[$request->product_id]['quantity'] ?? 0 + $request->quantity,
-        ];
+        
+        if (isset($cart[$request->product_id])) {
+            $cart[$request->product_id]['quantity'] += $request->quantity;
+        } else {
+            $cart[$request->product_id] = [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'price' => $product->price,
+                'image' => $product->image,
+                'quantity' => $request->quantity,
+            ];
+        }
 
         $this->saveCart($request, $cart);
 
-        return response()->json(['message' => 'Item added to cart', 'cart' => $cart], 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Item added to cart',
+            'cart' => array_values($cart) // Convert to indexed array
+        ]);
     }
 
     public function removeItem(Request $request, $productId)

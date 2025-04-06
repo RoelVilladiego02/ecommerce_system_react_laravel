@@ -23,7 +23,8 @@ class User extends Authenticatable
         'password',
         'role',
         'email_verified_at',
-        'remember_token'
+        'remember_token',
+        'cart'
     ];
 
     /**
@@ -44,6 +45,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'cart' => 'array'
     ];
 
     // One User can have many Orders
@@ -60,5 +62,40 @@ class User extends Authenticatable
     public function isCustomer()
     {
         return $this->role === 'customer';
+    }
+
+    public function getCartAttribute($value)
+    {
+        if (!$this->isCustomer()) {
+            return null;
+        }
+        return json_decode($value, true) ?? [];
+    }
+
+    public function setCartAttribute($value)
+    {
+        if (!$this->isCustomer()) {
+            return;
+        }
+        $this->attributes['cart'] = json_encode($value);
+    }
+
+    public function addToCart($item)
+    {
+        if (!$this->isCustomer()) {
+            throw new \Exception('Only customers can have a cart');
+        }
+        $cart = $this->cart ?? [];
+        $cart[] = $item;
+        $this->cart = $cart;
+        $this->save();
+    }
+
+    public function clearCart()
+    {
+        if ($this->isCustomer()) {
+            $this->cart = [];
+            $this->save();
+        }
     }
 }

@@ -11,7 +11,6 @@ import CartPage from './components/CartPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import './App.css';
-import CheckoutPage from './components/CheckoutPage';
 
 function App() {
   return (
@@ -37,26 +36,6 @@ function App() {
           </Routes>
         </Router>
       </CartProvider>
-      <Router>
-        <Routes>
-          <Route
-            path="/customer-dashboard"
-            element={
-              <>
-                <Navbar cartItemCount={cartItemCount} />
-                <CustomerStorefront />
-              </>
-            }
-          />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/register/customer" element={<CustomerRegisterForm />} />
-          <Route path="/register/employee" element={<EmployeeRegisterForm />} />
-          <Route path="/employee-dashboard" element={<AdminPanel />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="*" element={<Navigate to="/login" />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-        </Routes>
-      </Router>
     </AuthProvider>
   );
 }

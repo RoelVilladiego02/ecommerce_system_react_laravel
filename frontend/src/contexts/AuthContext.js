@@ -1,8 +1,11 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-axios.defaults.withCredentials = true; // Include credentials with requests
-axios.defaults.baseURL = 'http://localhost:8000'; // Ensure this matches the backend URL
+// Configure axios defaults
+axios.defaults.baseURL = 'http://localhost:8000';
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['Accept'] = 'application/json';
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 export const AuthContext = createContext();
 
@@ -20,10 +23,27 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
-    const login = (userData, authToken) => {
-        localStorage.setItem('token', authToken); // Ensure token is saved
-        setUser(userData);
-        setToken(authToken);
+    const login = async (userData, authToken) => {
+        try {
+            console.log('Login attempt with:', { userData, authToken }); // Debug log
+            
+            localStorage.setItem('token', authToken);
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // Update state
+            setUser(userData);
+            setToken(authToken);
+            
+            // Set axios default header
+            axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+            
+            return true;
+        } catch (error) {
+            console.error('Login error:', error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            throw error;
+        }
     };
 
     const logout = () => {

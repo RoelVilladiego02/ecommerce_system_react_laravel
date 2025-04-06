@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useCart } from '../contexts/CartContext';
 
-const Navbar = ({ cartItemCount }) => {
+const Navbar = ({ isCartPage }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { cartCount, resetCart } = useCart();
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -14,6 +16,8 @@ const Navbar = ({ cartItemCount }) => {
     const handleLogout = () => {
         if (window.confirm('Are you sure you want to log out?')) {
             localStorage.removeItem('token'); // Clear the token from localStorage
+            localStorage.removeItem('user'); // Clear the user from localStorage
+            resetCart(); // Clear the cart state
             navigate('/login'); // Redirect to the login page
         }
     };
@@ -55,15 +59,18 @@ const Navbar = ({ cartItemCount }) => {
                 <div className={`collapse navbar-collapse ${isMobileMenuOpen ? 'show' : ''}`} id="navbarNav">
                     <ul className="navbar-nav ms-auto">
                         <li className="nav-item">
-                            <Link
-                                className={`nav-link ${location.pathname === '/cart' ? 'active' : ''}`}
-                                to="/cart"
-                            >
-                                <i className="bi bi-cart"></i> Cart
-                                {cartItemCount > 0 && (
-                                    <span className="badge bg-danger ms-1">{cartItemCount}</span>
-                                )}
-                            </Link>
+                            {isCartPage ? (
+                                <Link className="nav-link" to="/customer-dashboard">
+                                    <i className="bi bi-shop"></i> Product Catalog
+                                </Link>
+                            ) : (
+                                <Link className="nav-link" to="/cart">
+                                    <i className="bi bi-cart"></i> Cart
+                                    {cartCount > 0 && (
+                                        <span className="badge bg-danger ms-1">{cartCount}</span>
+                                    )}
+                                </Link>
+                            )}
                         </li>
                         <li className="nav-item">
                             <button
@@ -71,7 +78,7 @@ const Navbar = ({ cartItemCount }) => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={handleLogout}
                             >
-                                Logout
+                                <i className="bi bi-box-arrow-right me-1"></i>Logout
                             </button>
                         </li>
                     </ul>

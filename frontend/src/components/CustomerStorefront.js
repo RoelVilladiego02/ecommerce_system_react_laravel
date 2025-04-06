@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
+import ProductCartModal from './ProductCartModal';
 
 const CustomerStorefront = () => {
     const [products, setProducts] = useState([]);
@@ -10,7 +12,9 @@ const CustomerStorefront = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('name');
     const [username, setUsername] = useState('Customer');
+    const [modalProduct, setModalProduct] = useState(null);
     const navigate = useNavigate();
+    const { addToCart, cart } = useCart(); // Ensure removeFromCart is destructured from useCart
 
     // Function to get user data from localStorage or fallback to default
     const getUserFromStorage = useCallback(() => {
@@ -165,6 +169,22 @@ const CustomerStorefront = () => {
         await fetchProducts();
     };
 
+    const handleShowModal = (product) => {
+        setModalProduct(product);
+    };
+
+    const handleCloseModal = () => {
+        setModalProduct(null);
+    };
+
+    const handleConfirmAdd = async (quantity) => {
+        try {
+            await addToCart(modalProduct, quantity);
+        } catch (err) {
+            // Error handling is already in addToCart
+        }
+    };
+
     if (loading) return (
         <div className="bg-light min-vh-100 py-5">
             <div className="container py-5">
@@ -285,9 +305,14 @@ const CustomerStorefront = () => {
                                                         <button className="btn btn-sm btn-outline-success">
                                                             <i className="bi bi-eye me-1"></i> Details
                                                         </button>
-                                                        <button className="btn btn-sm btn-success">
-                                                            <i className="bi bi-cart-plus me-1"></i> Add
-                                                        </button>
+                                                        <button 
+                                                        className="btn btn-sm btn-success"
+                                                        onClick={() => handleShowModal(product)}
+                                                        disabled={product.stock <= 0}
+                                                    >
+                                                        <i className="bi bi-cart-plus me-1"></i> 
+                                                        {product.stock > 0 ? 'Add' : 'Out of Stock'}
+                                                    </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -318,6 +343,15 @@ const CustomerStorefront = () => {
                     </div>
                 </div>
             </div>
+            {modalProduct && (
+                <ProductCartModal
+                    show={true}
+                    product={modalProduct}
+                    onClose={handleCloseModal}
+                    onConfirm={handleConfirmAdd}
+                    currentCartQuantity={cart.find(item => item.product_id === modalProduct.id)?.quantity || 0}
+                />
+            )}
         </div>
     );
 };

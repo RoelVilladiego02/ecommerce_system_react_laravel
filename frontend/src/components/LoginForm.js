@@ -90,11 +90,11 @@ const LoginForm = () => {
                 user: JSON.stringify(user)
             });
             
+            // Call the context login method
+            await login(user, token);
+            
             // Dispatch a custom event to notify other components
             window.dispatchEvent(new Event('user-login'));
-            
-            // Call the context login method
-            login(user, token);
             
             // Navigate based on user role
             navigate(user.role === 'employee' ? '/employee-dashboard' : '/customer-dashboard');

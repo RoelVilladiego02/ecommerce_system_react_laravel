@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
@@ -9,24 +9,60 @@ const CartPage = () => {
         loading, 
         error,
         removeFromCart,
-        checkout,
         cartTotal,
         showToast,
         updateCartItem
     } = useCart();
     const navigate = useNavigate();
+    const [selectedItems, setSelectedItems] = useState([]);
 
-    const handleCheckout = async () => {
-        try {
-            await checkout();
-            showToast('Order placed successfully!');
-            navigate('/orders'); // Or to a success page
-        } catch (err) {
-            showToast(err.message || 'Checkout failed', 'error');
+    const handleSelectItem = (productId) => {
+        setSelectedItems(prev => {
+            if (prev.includes(productId)) {
+                return prev.filter(id => id !== productId);
+            }
+            return [...prev, productId];
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectedItems.length === cart.length) {
+            setSelectedItems([]);
+        } else {
+            setSelectedItems(cart.map(item => item.product_id));
         }
     };
 
-    // Updated function to handle quantity changes
+    const selectedTotal = cart
+        .filter(item => selectedItems.includes(item.product_id))
+        .reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+
+    const calculateShipping = (items) => {
+        const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalQuantity === 0) return 0;
+        return 5 + (Math.max(0, totalQuantity - 1) * 2);
+    };
+
+    const selectedCart = cart.filter(item => selectedItems.includes(item.product_id));
+    const shippingCost = calculateShipping(selectedCart);
+    const finalTotal = selectedTotal + shippingCost;
+
+    const handleCheckout = () => {
+        if (selectedItems.length === 0) {
+            showToast('Please select items to checkout', 'error');
+            return;
+        }
+
+        const selectedCartItems = cart.filter(item => selectedItems.includes(item.product_id));
+        navigate('/checkout', { 
+            state: { 
+                selectedItems: selectedCartItems,
+                shippingCost: shippingCost,
+                total: finalTotal
+            }
+        });
+    };
+
     const updateQuantity = async (item, newQuantity) => {
         try {
             if (newQuantity <= 0) {
@@ -97,7 +133,23 @@ const CartPage = () => {
                 <div className="container">
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-success text-white py-3">
-                            <h2 className="text-center mb-0">Your Cart</h2>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <h2 className="mb-0">Your Cart</h2>
+                                {cart.length > 0 && (
+                                    <div className="form-check">
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={selectedItems.length === cart.length}
+                                            onChange={handleSelectAll}
+                                            id="selectAll"
+                                        />
+                                        <label className="form-check-label text-white" htmlFor="selectAll">
+                                            Select All
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className="card-body p-4">
                             {cart.length === 0 ? (
@@ -123,8 +175,16 @@ const CartPage = () => {
                                             </div>
                                             <div className="card-body p-0">
                                                 {cart.map(item => (
-                                                    <div key={item.product_id} className="card mb-0 border-0 border-bottom rounded-0">
+                                                    <div key={item.product_id} className="card mb-3 border-0 border-bottom rounded-0">
                                                         <div className="row g-0 p-3">
+                                                            <div className="col-auto d-flex align-items-center me-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="form-check-input"
+                                                                    checked={selectedItems.includes(item.product_id)}
+                                                                    onChange={() => handleSelectItem(item.product_id)}
+                                                                />
+                                                            </div>
                                                             <div className="col-md-3 col-lg-2">
                                                                 <img 
                                                                     src={item.image || 'https://via.placeholder.com/300'}
@@ -137,10 +197,10 @@ const CartPage = () => {
                                                                 <div className="card-body d-flex flex-column h-100">
                                                                     <div className="d-flex justify-content-between">
                                                                         <h5 className="card-title">{item.name}</h5>
-                                                                        <strong className="text-success">${(Number(item.price) * item.quantity).toFixed(2)}</strong>
+                                                                        <strong className="text-success">₱{(Number(item.price) * item.quantity).toFixed(2)}</strong>
                                                                     </div>
                                                                     <p className="card-text text-muted mb-2">
-                                                                        ${Number(item.price).toFixed(2)} × {item.quantity}
+                                                                        ₱{Number(item.price).toFixed(2)} × {item.quantity}
                                                                     </p>
                                                                     <div className="mt-auto d-flex justify-content-between align-items-center">
                                                                         <div className="input-group" style={{width: "120px"}}>
@@ -186,24 +246,45 @@ const CartPage = () => {
                                             </div>
                                             <div className="card-body">
                                                 <div className="d-flex justify-content-between mb-2">
-                                                    <span>Subtotal:</span>
-                                                    <span>${cartTotal.toFixed(2)}</span>
+                                                    <span>Selected Items:</span>
+                                                    <span>{selectedItems.length}</span>
+                                                </div>
+                                                <div className="d-flex justify-content-between mb-2">
+                                                    <span>Cart Total:</span>
+                                                    <span className="text-muted">₱{cartTotal.toFixed(2)}</span>
+                                                </div>
+                                                <div className="d-flex justify-content-between mb-2">
+                                                    <span>Selected Subtotal:</span>
+                                                    <span>₱{selectedTotal.toFixed(2)}</span>
                                                 </div>
                                                 <div className="d-flex justify-content-between mb-2">
                                                     <span>Shipping:</span>
-                                                    <span>Free</span>
+                                                    <span>
+                                                        {selectedItems.length === 0 ? (
+                                                            <span>---</span>
+                                                        ) : (
+                                                            <span>
+                                                                ₱{shippingCost.toFixed(2)}
+                                                                <small className="d-block text-muted">
+                                                                    ₱5 first item + ₱2/additional item
+                                                                </small>
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                                 <hr />
                                                 <div className="d-flex justify-content-between mb-4">
-                                                    <strong>Total:</strong>
-                                                    <strong className="text-success">${cartTotal.toFixed(2)}</strong>
+                                                    <strong>Total to Pay:</strong>
+                                                    <strong className="text-success">₱{finalTotal.toFixed(2)}</strong>
                                                 </div>
                                                 <div className="d-grid gap-2">
                                                     <button 
                                                         className="btn btn-success py-2"
                                                         onClick={handleCheckout}
+                                                        disabled={selectedItems.length === 0}
                                                     >
-                                                        <i className="bi bi-credit-card me-2"></i>Proceed to Checkout
+                                                        <i className="bi bi-credit-card me-2"></i>
+                                                        Proceed to Checkout ({selectedItems.length} items)
                                                     </button>
                                                     <button 
                                                         className="btn btn-outline-secondary"

@@ -51,7 +51,7 @@ const ProductCartModal = ({ show, product, onClose, onConfirm, currentCartQuanti
                                 <p className="text-muted small">{product.description}</p>
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <span>Price:</span>
-                                    <span className="text-success fw-bold">${Number(product.price).toFixed(2)}</span>
+                                    <span className="text-success fw-bold">₱{Number(product.price).toFixed(2)}</span>
                                 </div>
                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                     <span>Available Stock:</span>
@@ -94,7 +94,7 @@ const ProductCartModal = ({ show, product, onClose, onConfirm, currentCartQuanti
                                     <div className="d-flex justify-content-between align-items-center">
                                         <span className="fw-bold">Total:</span>
                                         <span className="text-success fw-bold">
-                                            ${(Number(product.price) * quantity).toFixed(2)}
+                                            ₱{(Number(product.price) * quantity).toFixed(2)}
                                         </span>
                                     </div>
                                 </form>

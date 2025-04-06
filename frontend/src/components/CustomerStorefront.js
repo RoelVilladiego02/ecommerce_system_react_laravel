@@ -293,7 +293,7 @@ const CustomerStorefront = () => {
                                                         className="img-fluid w-100 h-100 object-fit-cover"
                                                     />
                                                     <div className="position-absolute top-0 end-0 bg-success text-white px-3 py-1 rounded-bl">
-                                                        ${Number(product.price || 0).toFixed(2)}
+                                                        ₱{Number(product.price || 0).toFixed(2)}
                                                     </div>
                                                 </div>
                                                 <div className="card-body d-flex flex-column">

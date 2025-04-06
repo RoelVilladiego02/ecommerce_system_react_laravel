@@ -129,14 +129,51 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    const checkout = async () => {
+    const checkout = async (orderDetails) => {
         try {
-            const response = await apiClient.post('/checkout');
-            setCart([]);
-            return response.data; // Contains order ID
+            setLoading(true);
+            
+            if (!orderDetails || !orderDetails.items || orderDetails.items.length === 0) {
+                throw new Error('No items selected for checkout');
+            }
+
+            console.log('Checkout payload:', {
+                user_id: JSON.parse(localStorage.getItem('user')).id,
+                delivery_address: orderDetails.deliveryAddress,
+                contact_number: orderDetails.contactNumber,
+                message: orderDetails.message,
+                payment_method: orderDetails.paymentMethod,
+                items: orderDetails.items,
+                total_amount: orderDetails.total
+            });
+
+            const response = await apiClient.post('/checkout', {
+                user_id: JSON.parse(localStorage.getItem('user')).id,
+                delivery_address: orderDetails.deliveryAddress,
+                contact_number: orderDetails.contactNumber,
+                message: orderDetails.message,
+                payment_method: orderDetails.paymentMethod,
+                items: orderDetails.items,
+                total_amount: orderDetails.total
+            });
+
+            if (response.status === 201 || response.status === 200) {
+                await clearCart();
+                return { 
+                    success: true, 
+                    data: response.data,
+                    orderId: response.data.order_id 
+                };
+            } else {
+                throw new Error(response.data.error || 'Checkout failed');
+            }
         } catch (err) {
-            setError(err.response?.data?.error || 'Checkout failed');
-            throw err;
+            const errorMessage = err.response?.data?.error 
+                || err.message 
+                || 'Failed to process checkout';
+            throw new Error(errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 

@@ -1,17 +1,14 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-
-// Set Axios base URL
-axios.defaults.baseURL = 'http://localhost:8000/api';
+import { Link } from 'react-router-dom';
+import apiClient from '../services/apiClient'; // Use the centralized API client
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { login } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     // Format error message from response data
     const formatErrorMessage = (responseData) => {
@@ -67,37 +64,28 @@ const LoginForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
         
         try {
-            await axios.get('/sanctum/csrf-cookie').catch((err) => {
-                if (err.response?.status === 404) {
-                    console.warn('CSRF cookie endpoint not found. Proceeding without CSRF setup.');
-                } else {
-                    throw err;
-                }
-            });
-            
-            const response = await axios.post('/login', { email, password });
+            const response = await apiClient.post('/login', { email, password });
             const { user, token } = response.data;
             
-            // Store both token and user in localStorage
+            // Store auth data
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
-            
-            // Log the saved data for debugging
-            console.log('Saved to localStorage:', {
-                token: token,
-                user: JSON.stringify(user)
-            });
             
             // Call the context login method
             await login(user, token);
             
-            // Dispatch a custom event to notify other components
-            window.dispatchEvent(new Event('user-login'));
-            
-            // Navigate based on user role
-            navigate(user.role === 'employee' ? '/employee-dashboard' : '/customer-dashboard');
+            // Set the Authorization header immediately
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+            // Hard redirect for role-based navigation
+            if (user.role === 'employee') {
+                window.location.href = '/employee-dashboard';
+            } else {
+                window.location.href = '/customer-dashboard';
+            }
         } catch (err) {
             console.error('Login error:', err);
             
@@ -111,6 +99,8 @@ const LoginForm = () => {
             } else {
                 setError('An unexpected error occurred. Please check the console for details.');
             }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -144,7 +134,13 @@ const LoginForm = () => {
                                 </div>
                                 
                                 <div className="d-grid mb-3">
-                                    <button type="submit" className="btn btn-info btn-lg text-white">Login</button>
+                                    <button 
+                                        type="submit" 
+                                        className="btn btn-info btn-lg text-white" 
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Logging in...' : 'Login'}
+                                    </button>
                                 </div>
                                 
                                 <div className="text-center">

@@ -16,6 +16,12 @@ export const CartProvider = ({ children }) => {
     };
 
     const fetchCart = useCallback(async () => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        // Only fetch cart for customers
+        if (!user || user.role !== 'customer') {
+            return;
+        }
+
         try {
             setLoading(true);
             const response = await apiClient.get('/cart');
@@ -47,6 +53,10 @@ export const CartProvider = ({ children }) => {
     }, []);
     
     const addToCart = async (product, quantityChange = 1, newQuantity = null) => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'customer') {
+            throw new Error('Only customers can add items to cart');
+        }
         setLoading(true);
         try {
             // Check if item already exists in cart
@@ -80,6 +90,10 @@ export const CartProvider = ({ children }) => {
     };    
 
     const updateCartItem = async (productId, quantity) => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'customer') {
+            throw new Error('Only customers can update items in cart');
+        }
         try {
             if (quantity <= 0) {
                 // If quantity is 0 or less, remove the item
@@ -108,6 +122,10 @@ export const CartProvider = ({ children }) => {
     };
 
     const removeFromCart = async (productId) => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'customer') {
+            throw new Error('Only customers can remove items from cart');
+        }
         try {
             await apiClient.delete(`/cart/${productId}`);
             
@@ -121,6 +139,10 @@ export const CartProvider = ({ children }) => {
     };
 
     const clearCart = async () => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'customer') {
+            throw new Error('Only customers can clear the cart');
+        }
         try {
             await apiClient.post('/cart/clear');
             setCart([]);
@@ -130,6 +152,10 @@ export const CartProvider = ({ children }) => {
     };
 
     const checkout = async (orderDetails) => {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || user.role !== 'customer') {
+            throw new Error('Only customers can checkout');
+        }
         try {
             setLoading(true);
             
@@ -186,7 +212,9 @@ export const CartProvider = ({ children }) => {
     useEffect(() => {
         const handleTokenChange = () => {
             const token = localStorage.getItem('token');
-            if (token) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            // Only fetch cart for customers
+            if (token && user && user.role === 'customer') {
                 fetchCart();
             } else {
                 resetCart();

@@ -13,22 +13,27 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
+    console.log('Sending token:', token); // Debug log
     config.headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('No token found in localStorage');
   }
   return config;
 }, error => {
   return Promise.reject(error);
 });
 
-// Modify response interceptor to only redirect on actual auth errors
+// Modify response interceptor to handle 403 errors gracefully and redirect on auth errors
 apiClient.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401 && !error.config.url.includes('/login')) {
+      // Handle unauthorized errors by clearing localStorage and redirecting to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    // Removed the global toast for 403 Forbidden errors
     return Promise.reject(error);
   }
 );

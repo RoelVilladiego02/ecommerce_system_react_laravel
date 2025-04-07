@@ -25,7 +25,7 @@ class CartController extends Controller
         if ($product->stock < $request->quantity) {
             return response()->json([
                 'success' => false,
-                'error' => 'Insufficient stock'
+                'message' => 'Insufficient stock'
             ], 400);
         }
 
@@ -40,6 +40,7 @@ class CartController extends Controller
                 'price' => $product->price,
                 'image' => $product->image,
                 'quantity' => $request->quantity,
+                'stock' => $product->stock, // Add stock info to cart item
             ];
         }
 
@@ -52,18 +53,62 @@ class CartController extends Controller
         ]);
     }
 
+    public function updateItem(Request $request, $productId)
+    {
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $product = Product::findOrFail($productId);
+        $cart = $this->getCart($request);
+
+        if (!isset($cart[$productId])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found in cart'
+            ], 404);
+        }
+
+        // Check if requested quantity is within stock limits
+        if ($product->stock < $request->quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot exceed available stock'
+            ], 400);
+        }
+
+        // Update cart item with new quantity and refresh product data
+        $cart[$productId]['quantity'] = $request->quantity;
+        $cart[$productId]['stock'] = $product->stock; // Update stock info
+
+        $this->saveCart($request, $cart);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cart updated successfully',
+            'cart' => array_values($cart) // Convert to indexed array
+        ]);
+    }
+
     public function removeItem(Request $request, $productId)
     {
         $cart = $this->getCart($request);
 
         if (!isset($cart[$productId])) {
-            return response()->json(['error' => 'Item not found in cart'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found in cart'
+            ], 404);
         }
 
         unset($cart[$productId]);
         $this->saveCart($request, $cart);
 
-        return response()->json(['message' => 'Item removed from cart', 'cart' => $cart], 200);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Item removed from cart', 
+            'cart' => array_values($cart)
+        ], 200);
     }
 
     public function clear(Request $request)
@@ -77,7 +122,10 @@ class CartController extends Controller
             
             return response()->json(['success' => true, 'message' => 'Cart cleared successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to clear cart'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to clear cart'
+            ], 500);
         }
     }
 

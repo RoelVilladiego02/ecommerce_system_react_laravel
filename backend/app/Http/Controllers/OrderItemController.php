@@ -30,9 +30,24 @@ class OrderItemController extends Controller
         return response()->json($orderItem, Response::HTTP_CREATED);
     }
 
-    public function show(OrderItem $orderItem)
+    public function show($orderId)
     {
-        return response()->json($orderItem->load(['product', 'order']));
+        $orderItems = OrderItem::with(['product', 'order'])
+            ->where('order_id', $orderId)
+            ->get();
+
+        if ($orderItems->isEmpty()) {
+            return response()->json([
+                'error' => 'Order items not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json([
+            'data' => $orderItems,
+            'total' => $orderItems->sum(function ($item) {
+                return $item->quantity * $item->price;
+            })
+        ]);
     }
 
     public function update(OrderItemRequest $request, OrderItem $orderItem)

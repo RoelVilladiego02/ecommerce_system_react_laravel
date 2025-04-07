@@ -16,6 +16,13 @@ class OrderItem extends Model
         'price'
     ];
 
+    protected $appends = ['subtotal'];
+
+    public function getSubtotalAttribute()
+    {
+        return $this->quantity * $this->price;
+    }
+
     // One OrderItem belongs to one Product
     public function product()
     {

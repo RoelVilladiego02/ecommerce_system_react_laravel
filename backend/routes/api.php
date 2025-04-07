@@ -19,43 +19,57 @@ use App\Http\Controllers\CartController;
 |
 */
 
+// Authentication routes (no auth required)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/register/employee', [AuthController::class, 'registerEmployee']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Routes requiring authentication
 Route::middleware('auth:sanctum')->group(function () {
-    // Get authenticated user route
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
     
     Route::post('/logout', [AuthController::class, 'logout']);
     
-    // Employee routes
+    // Employee-specific routes
     Route::middleware('role:employee')->group(function () {
-        Route::apiResource('products', ProductController::class);
-        Route::get('/orders/monitor', [OrderController::class, 'monitor']);
-    });
-
-    Route::middleware(['auth:sanctum', 'role:employee'])->group(function () {
-        Route::get('/orders', [OrderController::class, 'index']);
-        Route::get('/orders/{order}', [OrderController::class, 'show']);
-        Route::get('/orders/sales/total', [OrderController::class, 'getSalesTotal']);
+        Route::apiResource('products', ProductController::class)->except(['index']);
+        
+        // Order management routes
+        Route::prefix('orders')->group(function () {
+            Route::get('/', [OrderController::class, 'index']);
+            Route::get('/{order}', [OrderController::class, 'show']);
+            Route::put('/{order}/status', [OrderController::class, 'updateStatus'])
+                ->where('order', '[0-9]+');
+            Route::get('/sales/total', [OrderController::class, 'getSalesTotal']);
+            Route::get('/{order}/items', [OrderItemController::class, 'show'])
+                ->where('order', '[0-9]+');
+        });
     });
     
-    // Customer routes
+    // Routes accessible by both employees and customers
+    Route::get('/products', [ProductController::class, 'index']);
+    
+    // Customer-specific routes
     Route::middleware('role:customer')->group(function () {
-        Route::get('/products', [ProductController::class, 'index']);
         Route::post('/orders', [OrderController::class, 'store']);
-    });
-
-    Route::middleware('role:customer')->group(function () {
+        
+        // Cart routes
         Route::get('/cart', [CartController::class, 'show']);
         Route::post('/cart', [CartController::class, 'addItem']);
+        Route::put('/cart/{product}', [CartController::class, 'updateItem']); // New update endpoint
         Route::delete('/cart/{product}', [CartController::class, 'removeItem']);
-        Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
+        Route::post('/cart/clear', [CartController::class, 'clear']);
         Route::post('/checkout', [OrderController::class, 'checkout']);
+        
+        // Customer order routes
+        Route::prefix('my-orders')->group(function () {
+            Route::get('/', [OrderController::class, 'index']);
+            Route::get('/{order}', [OrderController::class, 'show'])
+                ->where('order', '[0-9]+');
+            Route::get('/{order}/items', [OrderItemController::class, 'show'])
+                ->where('order', '[0-9]+');
+        });
     });
-
-    Route::post('/cart/clear', [CartController::class, 'clear'])->middleware('auth:sanctum');
 });

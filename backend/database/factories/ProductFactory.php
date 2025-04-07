@@ -13,6 +13,7 @@ class ProductFactory extends Factory
             'description' => $this->faker->paragraph,
             'price' => $this->faker->randomFloat(2, 10, 1000),
             'stock' => $this->faker->numberBetween(0, 100),
+            'is_active' => $this->faker->boolean(80), // 80% chance of being active
             'image' => $this->faker->imageUrl(640, 480, 'products')
         ];
     }

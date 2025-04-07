@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
-import Navbar from './Navbar';
+import Navbar from '../components/Navbar';
 
 const CartPage = () => {
     const { 
@@ -70,8 +70,13 @@ const CartPage = () => {
                 return;
             }
     
+            // Prevent going below 1
+            if (newQuantity < 1) {
+                return;
+            }
+    
+            // Prevent exceeding stock
             if (newQuantity > item.stock) {
-                showToast('Cannot exceed available stock', 'error');
                 return;
             }
     
@@ -208,7 +213,7 @@ const CartPage = () => {
                                                                                 type="button" 
                                                                                 className="btn btn-sm btn-outline-secondary"
                                                                                 onClick={() => updateQuantity(item, item.quantity - 1)}
-                                                                                disabled={item.quantity <= 1}
+                                                                                disabled={item.quantity <= 1} // Disable "-" button if quantity is at minimum
                                                                             >
                                                                                 <i className="bi bi-dash"></i>
                                                                             </button>
@@ -219,7 +224,7 @@ const CartPage = () => {
                                                                                 type="button" 
                                                                                 className="btn btn-sm btn-outline-secondary"
                                                                                 onClick={() => updateQuantity(item, item.quantity + 1)}
-                                                                                disabled={item.quantity >= item.stock}
+                                                                                disabled={item.quantity >= item.stock} // Disable "+" button if quantity is at max stock
                                                                             >
                                                                                 <i className="bi bi-plus"></i>
                                                                             </button>

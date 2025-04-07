@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import ProductCartModal from './ProductCartModal';
+import ProductCartModal from '../components/ProductCartModal';
 
 const CustomerStorefront = () => {
     const [products, setProducts] = useState([]);
@@ -13,8 +13,9 @@ const CustomerStorefront = () => {
     const [sortOption, setSortOption] = useState('name');
     const [username, setUsername] = useState('Customer');
     const [modalProduct, setModalProduct] = useState(null);
+    const [detailsModalProduct, setDetailsModalProduct] = useState(null); // State for product details modal
     const navigate = useNavigate();
-    const { addToCart, cart } = useCart(); // Ensure removeFromCart is destructured from useCart
+    const { addToCart, cart } = useCart();
 
     // Function to get user data from localStorage or fallback to default
     const getUserFromStorage = useCallback(() => {
@@ -73,20 +74,33 @@ const CustomerStorefront = () => {
         try {
             setLoading(true);
             setError(null);
-            
+
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('No authentication token found. Please log in.');
             }
 
-            const response = await axios.get('http://localhost:8000/api/products', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            let allProducts = [];
+            let currentPage = 1;
+            let lastPage = 1;
 
-            setProducts(response.data);
-            setFilteredProducts(response.data);
+            do {
+                const response = await axios.get(`http://localhost:8000/api/products?page=${currentPage}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                const productsData = response.data.data || [];
+                allProducts = [...allProducts, ...productsData];
+                currentPage = response.data.meta?.current_page || currentPage;
+                lastPage = response.data.meta?.last_page || lastPage;
+
+                currentPage++;
+            } while (currentPage <= lastPage);
+
+            setProducts(allProducts);
+            setFilteredProducts(allProducts);
         } catch (err) {
             console.error('API Error:', {
                 message: err.message,
@@ -95,7 +109,7 @@ const CustomerStorefront = () => {
             });
 
             let errorMessage = 'Failed to fetch products. Please try again.';
-            
+
             if (err.response) {
                 if (err.response.status === 401) {
                     errorMessage = 'Session expired. Redirecting to login...';
@@ -152,6 +166,26 @@ const CustomerStorefront = () => {
         setFilteredProducts(sortedProducts);
     }, [sortOption, products]);
 
+    useEffect(() => {
+        // Ensure filteredProducts is always an array
+        if (!Array.isArray(filteredProducts)) {
+            setFilteredProducts([]);
+        }
+    }, [filteredProducts]);
+
+    useEffect(() => {
+        console.log('Products state:', products); // Debug log
+        console.log('Filtered products state:', filteredProducts); // Debug log
+    }, [products, filteredProducts]);
+
+    useEffect(() => {
+        console.log('Current products state:', {
+            rawProducts: products,
+            filteredProducts: filteredProducts,
+            count: products.length
+        });
+    }, [products, filteredProducts]);
+
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
@@ -183,6 +217,14 @@ const CustomerStorefront = () => {
         } catch (err) {
             // Error handling is already in addToCart
         }
+    };
+
+    const handleViewDetails = (product) => {
+        setDetailsModalProduct(product); // Set the product to display in the modal
+    };
+
+    const handleCloseDetailsModal = () => {
+        setDetailsModalProduct(null); // Close the modal
     };
 
     if (loading) return (
@@ -302,7 +344,10 @@ const CustomerStorefront = () => {
                                                         {product.description || 'No description available'}
                                                     </p>
                                                     <div className="d-flex justify-content-between align-items-center">
-                                                        <button className="btn btn-sm btn-outline-success">
+                                                        <button 
+                                                            className="btn btn-sm btn-outline-success"
+                                                            onClick={() => handleViewDetails(product)}
+                                                        >
                                                             <i className="bi bi-eye me-1"></i> Details
                                                         </button>
                                                         <button 
@@ -351,6 +396,41 @@ const CustomerStorefront = () => {
                     onConfirm={handleConfirmAdd}
                     currentCartQuantity={cart.find(item => item.product_id === modalProduct.id)?.quantity || 0}
                 />
+            )}
+            {detailsModalProduct && (
+                <div className="modal fade show d-block" tabIndex="-1" role="dialog">
+                    <div className="modal-dialog modal-dialog-centered" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">{detailsModalProduct.name}</h5>
+                                <button 
+                                    type="button" 
+                                    className="btn-close" 
+                                    onClick={handleCloseDetailsModal}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <img 
+                                    src={detailsModalProduct.image || 'https://via.placeholder.com/300x200'} 
+                                    alt={detailsModalProduct.name} 
+                                    className="img-fluid mb-3"
+                                />
+                                <p><strong>Price:</strong> ₱{Number(detailsModalProduct.price || 0).toFixed(2)}</p>
+                                <p><strong>Description:</strong> {detailsModalProduct.description || 'No description available'}</p>
+                                <p><strong>Stock:</strong> {detailsModalProduct.stock}</p>
+                            </div>
+                            <div className="modal-footer">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={handleCloseDetailsModal}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

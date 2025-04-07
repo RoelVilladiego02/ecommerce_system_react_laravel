@@ -101,12 +101,8 @@ export const CartProvider = ({ children }) => {
                 return;
             }
 
-            // First remove the existing item
-            await apiClient.delete(`/cart/${productId}`);
-            
-            // Then add it back with new quantity
-            const response = await apiClient.post('/cart', {
-                product_id: productId,
+            // Use the new PUT endpoint to update quantity
+            const response = await apiClient.put(`/cart/${productId}`, {
                 quantity: quantity
             });
             
@@ -147,7 +143,7 @@ export const CartProvider = ({ children }) => {
             await apiClient.post('/cart/clear');
             setCart([]);
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to clear cart');
+            setError(err.response?.data?.message || 'Failed to clear cart');
         }
     };
 
@@ -194,7 +190,7 @@ export const CartProvider = ({ children }) => {
                 throw new Error(response.data.error || 'Checkout failed');
             }
         } catch (err) {
-            const errorMessage = err.response?.data?.error 
+            const errorMessage = err.response?.data?.message 
                 || err.message 
                 || 'Failed to process checkout';
             throw new Error(errorMessage);

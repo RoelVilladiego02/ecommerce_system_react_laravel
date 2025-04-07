@@ -9,6 +9,14 @@ class Order extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_COMPLETED = 'completed';
+
+    public const VALID_STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_COMPLETED
+    ];
+
     protected $fillable = [
         'user_id',
         'total',
@@ -19,19 +27,16 @@ class Order extends Model
         'payment_method'
     ];
 
-    // One Order belongs to one User
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // One Order can have many OrderItems
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    // Orders belong to many Products through OrderItems table
     public function products()
     {
         return $this->belongsToMany(Product::class, 'order_items')
@@ -51,5 +56,15 @@ class Order extends Model
     public function scopeFilterByStatus($query, $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED;
     }
 }

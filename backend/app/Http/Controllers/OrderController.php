@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Http\Requests\OrderRequest;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -83,14 +84,53 @@ class OrderController extends Controller
         ]);
     }
 
-    public function update(Order $order)
+    public function updateStatus(Order $order, Request $request)
     {
-        $validated = request()->validate([
-            'status' => 'required|in:pending,processing,completed,cancelled'
+        if (!$request->user()) {
+            return response()->json(['message' => 'Unauthenticated.'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if ($request->user()->role !== 'employee') {
+            return response()->json(['message' => 'Unauthorized.'], Response::HTTP_FORBIDDEN);
+        }
+
+        // Validate status input
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                'string',
+                'in:' . implode(',', Order::VALID_STATUSES)
+            ]
         ]);
 
-        $order->update($validated);
-        return response()->json($order);
+        // Log current state
+        Log::info('Attempting order status update', [
+            'order_id' => $order->id,
+            'current_status' => $order->status,
+            'new_status' => $validated['status']
+        ]);
+
+        // Check if status is actually changing
+        if ($order->status === $validated['status']) {
+            return response()->json([
+                'message' => 'Order status is already ' . $validated['status'],
+                'status' => $order->status
+            ]);
+        }
+
+        // Update status
+        $order->update(['status' => $validated['status']]);
+        
+        return response()->json([
+            'message' => 'Order status updated successfully',
+            'data' => $order->fresh()->load('orderItems.product', 'user')
+        ]);
+    }
+
+    public function update(Order $order)
+    {
+        // Remove status update logic from here as it's now handled in updateStatus
+        return response()->json(['message' => 'Method not allowed'], Response::HTTP_METHOD_NOT_ALLOWED);
     }
 
     public function destroy(Order $order)
@@ -152,6 +192,27 @@ class OrderController extends Controller
         });
     }
 
+    public function monitor(Request $request)
+    {
+        // This method is just an alias for index that returns all orders for monitoring
+        $query = Order::with(['orderItems.product', 'user']);
+        
+        // Apply filters if provided
+        if ($request->has('status')) {
+            $query->filterByStatus($request->status);
+        }
+        
+        // Sort by newest orders first
+        $query->latest();
+        
+        // Get all orders
+        $orders = $query->get();
+        
+        return response()->json([
+            'data' => $orders
+        ]);
+    }
+
     public function getSalesTotal(Request $request)
     {
         $query = Order::query();
@@ -165,6 +226,17 @@ class OrderController extends Controller
 
         return response()->json([
             'total_sales' => $totalSales,
+        ]);
+    }
+
+    public function getAllowedTransitions(Order $order)
+    {
+        $currentStatus = $order->status;
+        $allowedTransitions = Order::getAllowedStatusTransitions()[$currentStatus] ?? [];
+        
+        return response()->json([
+            'current_status' => $currentStatus,
+            'allowedTransitions' => $allowedTransitions
         ]);
     }
 }

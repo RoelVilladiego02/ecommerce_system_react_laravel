@@ -8,17 +8,48 @@ export const ProductProvider = ({ children }) => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 10,
+        total: 0,
+    });
 
-    const fetchProducts = useCallback(async () => {
+    const fetchProducts = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const response = await apiClient.get('/products');
-            setProducts(Array.isArray(response.data) ? response.data : []);
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found. Please log in.');
+            }
+
+            const response = await apiClient.get(`/products?page=${page}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Include token in headers
+                },
+            });
+            console.log('Products API response:', response.data); // Debug log
+
+            // Handle both paginated and non-paginated responses
+            const productsData = response.data.data || response.data;
+            setProducts(Array.isArray(productsData) ? productsData : []);
+
+            // Update pagination state if meta is available
+            if (response.data.meta) {
+                setPagination({
+                    currentPage: response.data.meta.current_page,
+                    lastPage: response.data.meta.last_page,
+                    perPage: response.data.meta.per_page,
+                    total: response.data.meta.total,
+                });
+            }
+
             setError(null);
         } catch (error) {
-            console.error('Error fetching products:', error);
-            setError(error.response?.data?.message || 'Failed to fetch products');
-            toast.error('Failed to load products');
+            console.error('Error fetching products:', error.response || error);
+            const errorMessage = error.response?.data?.message || 'Failed to fetch products';
+            setError(errorMessage);
+            toast.error('Failed to load products. Please check your permissions or try again.');
         } finally {
             setLoading(false);
         }
@@ -61,11 +92,11 @@ export const ProductProvider = ({ children }) => {
         try {
             await apiClient.delete(`/products/${id}`);
             await fetchProducts();
-            toast.success('Product deleted successfully');
+            return null; // Return null to indicate success
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to delete product';
-            toast.error(errorMessage);
-            throw error;
+            console.error('Delete product error:', error); // Log the error for debugging
+            return errorMessage; // Return the error message instead of throwing
         } finally {
             setLoading(false);
         }
@@ -74,8 +105,10 @@ export const ProductProvider = ({ children }) => {
     return (
         <ProductContext.Provider value={{
             products,
+            setProducts, // Expose setProducts
             loading,
             error,
+            pagination, // Expose pagination state
             fetchProducts,
             createProduct,
             updateProduct,

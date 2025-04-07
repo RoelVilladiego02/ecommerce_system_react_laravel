@@ -102,53 +102,92 @@ const CustomerRegisterForm = () => {
     return (
         <div className="container py-5">
             <div className="row justify-content-center">
-                <div className="col-md-8 col-lg-6">
-                    <div className="card border-success shadow-lg">
-                        <div className="card-header bg-success text-white">
-                            <h2 className="text-center mb-0">Customer Registration</h2>
+                <div className="col-md-6 col-lg-5">
+                    <div className="card border-0 shadow-lg">
+                        <div className="card-header bg-gradient bg-success text-white text-center py-4">
+                            <h2 className="mb-0">Customer Registration</h2>
+                            <p className="mb-0">Join as a customer</p>
                         </div>
                         <div className="card-body p-4">
                             <form onSubmit={handleSubmit}>
-                                {error && <div className="alert alert-danger alert-dismissible fade show">
-                                    {error}
-                                    <button type="button" className="btn-close" onClick={() => setError('')}></button>
-                                </div>}
-                                {success && <div className="alert alert-success alert-dismissible fade show">
-                                    {success}
-                                    <button type="button" className="btn-close" onClick={() => setSuccess('')}></button>
-                                </div>}
-                                
+                                {error && (
+                                    <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i className="bi bi-exclamation-circle me-2"></i>{error}
+                                        <button type="button" className="btn-close" onClick={() => setError('')}></button>
+                                    </div>
+                                )}
+                                {success && (
+                                    <div className="alert alert-success alert-dismissible fade show" role="alert">
+                                        <i className="bi bi-check-circle me-2"></i>{success}
+                                        <button type="button" className="btn-close" onClick={() => setSuccess('')}></button>
+                                    </div>
+                                )}
                                 <div className="mb-3">
-                                    <label htmlFor="name" className="form-label">Full Name</label>
-                                    <input type="text" className="form-control" id="name" name="name" 
-                                        placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+                                    <label htmlFor="name" className="form-label fw-bold">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        id="name" 
+                                        name="name" 
+                                        placeholder="John Doe" 
+                                        value={formData.name} 
+                                        onChange={handleChange} 
+                                        required 
+                                    />
                                 </div>
-                                
                                 <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">Email Address</label>
-                                    <input type="email" className="form-control" id="email" name="email" 
-                                        placeholder="john@example.com" value={formData.email} onChange={handleChange} required />
+                                    <label htmlFor="email" className="form-label fw-bold">Email Address</label>
+                                    <input 
+                                        type="email" 
+                                        className="form-control" 
+                                        id="email" 
+                                        name="email" 
+                                        placeholder="john@example.com" 
+                                        value={formData.email} 
+                                        onChange={handleChange} 
+                                        required 
+                                    />
                                 </div>
-                                
                                 <div className="mb-3">
-                                    <label htmlFor="password" className="form-label">Password</label>
-                                    <input type="password" className="form-control" id="password" name="password" 
-                                        placeholder="At least 8 characters" value={formData.password} onChange={handleChange} required />
+                                    <label htmlFor="password" className="form-label fw-bold">Password</label>
+                                    <input 
+                                        type="password" 
+                                        className="form-control" 
+                                        id="password" 
+                                        name="password" 
+                                        placeholder="At least 8 characters" 
+                                        value={formData.password} 
+                                        onChange={handleChange} 
+                                        required 
+                                    />
                                 </div>
-                                
                                 <div className="mb-4">
-                                    <label htmlFor="password_confirmation" className="form-label">Confirm Password</label>
-                                    <input type="password" className="form-control" id="password_confirmation" name="password_confirmation" 
-                                        placeholder="Re-enter your password" value={formData.password_confirmation} onChange={handleChange} required />
+                                    <label htmlFor="password_confirmation" className="form-label fw-bold">Confirm Password</label>
+                                    <input 
+                                        type="password" 
+                                        className="form-control" 
+                                        id="password_confirmation" 
+                                        name="password_confirmation" 
+                                        placeholder="Re-enter your password" 
+                                        value={formData.password_confirmation} 
+                                        onChange={handleChange} 
+                                        required 
+                                    />
                                 </div>
-                                
                                 <div className="d-grid gap-2">
-                                    <button type="submit" className="btn btn-success btn-lg">Register</button>
-                                    <button type="button" className="btn btn-outline-secondary" onClick={() => navigate('/login')}>
+                                    <button type="submit" className="btn btn-success btn-lg shadow-sm">Register</button>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-secondary" 
+                                        onClick={() => navigate('/login')}
+                                    >
                                         Back to Login
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                        <div className="card-footer text-center bg-light py-3">
+                            <small className="text-muted">© 2023 Ecommerce System. All rights reserved.</small>
                         </div>
                     </div>
                 </div>

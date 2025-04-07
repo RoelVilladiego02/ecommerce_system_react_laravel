@@ -9,6 +9,14 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        Product::factory()->count(20)->create();
+        // Create 15 active products
+        Product::factory()->count(15)->state([
+            'is_active' => true
+        ])->create();
+
+        // Create 5 inactive products
+        Product::factory()->count(5)->state([
+            'is_active' => false
+        ])->create();
     }
 }

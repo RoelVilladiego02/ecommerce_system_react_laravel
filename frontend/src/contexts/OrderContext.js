@@ -13,13 +13,13 @@ export const OrderProvider = ({ children }) => {
     const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await apiClient.get('/orders/monitor');
+            const response = await apiClient.get('/orders');
             setOrders(response.data?.data || response.data || []);
             setError(null);
         } catch (error) {
-            console.error('Error fetching orders:', error);
+            console.error('Error fetching orders:', error.response || error);
             setError(error.response?.data?.message || 'Failed to fetch orders');
-            toast.error('Failed to load orders');
+            toast.error('Failed to load orders. Please check your permissions or try again.');
         } finally {
             setLoading(false);
         }
@@ -44,11 +44,11 @@ export const OrderProvider = ({ children }) => {
         setLoading(true);
         try {
             const response = await apiClient.put(`/orders/${orderId}/status`, { status });
-            await fetchOrders();
-            toast.success('Order status updated successfully');
-            return response.data;
+            toast.success(response.data.message || `Order status updated to ${status}`);
+            await fetchOrders(); // Refresh the orders list
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to update order status';
+            console.error('Failed to update order status:', error);
+            const errorMessage = error.response?.data?.error || 'Failed to update order status. Please try again.';
             toast.error(errorMessage);
             throw error;
         } finally {

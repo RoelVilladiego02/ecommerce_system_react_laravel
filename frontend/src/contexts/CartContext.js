@@ -180,7 +180,14 @@ export const CartProvider = ({ children }) => {
             });
 
             if (response.status === 201 || response.status === 200) {
-                await clearCart();
+                // Remove only the selected items from the cart
+                const remainingCart = cart.filter(
+                    cartItem => !orderDetails.items.some(
+                        selectedItem => selectedItem.product_id === cartItem.product_id
+                    )
+                );
+                setCart(remainingCart);
+
                 return { 
                     success: true, 
                     data: response.data,
